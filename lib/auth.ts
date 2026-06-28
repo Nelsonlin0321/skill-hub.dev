@@ -1,4 +1,8 @@
 import prisma from "@/prisma/client";
+import {
+  sendAuthPasswordResetEmail,
+  sendAuthVerificationEmail,
+} from "@/lib/email";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
@@ -9,7 +13,9 @@ function readRequiredEnv(name: string): string {
   const value = process.env[name]?.trim();
 
   if (!value) {
-    throw new Error(`${AUTH_CONFIGURATION_ERROR}: Missing required env var ${name}.`);
+    throw new Error(
+      `${AUTH_CONFIGURATION_ERROR}: Missing required env var ${name}.`,
+    );
   }
 
   return value;
@@ -42,7 +48,9 @@ function getGoogleProviderConfig() {
     return undefined;
   }
 
-  const missingVariable = clientId ? "GOOGLE_CLIENT_SECRET" : "GOOGLE_CLIENT_ID";
+  const missingVariable = clientId
+    ? "GOOGLE_CLIENT_SECRET"
+    : "GOOGLE_CLIENT_ID";
 
   if (process.env.NODE_ENV === "development") {
     throw new Error(
@@ -66,6 +74,32 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   baseURL,
   secret,
+  emailAndPassword: {
+    enabled: true,
+    minPasswordLength: 8,
+    requireEmailVerification: true,
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: ({ user, url }) => {
+      void sendAuthPasswordResetEmail({
+        to: user.email,
+        name: user.name ?? null,
+        resetUrl: url,
+      });
+      return Promise.resolve();
+    },
+  },
+  emailVerification: {
+    sendOnSignIn: true,
+    sendOnSignUp: true,
+    sendVerificationEmail: ({ user, url }) => {
+      void sendAuthVerificationEmail({
+        to: user.email,
+        name: user.name ?? null,
+        verificationUrl: url,
+      });
+      return Promise.resolve();
+    },
+  },
   ...(googleProvider
     ? {
         socialProviders: {
