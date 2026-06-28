@@ -1,9 +1,10 @@
 import "server-only";
 
-import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
+import { sesClient, sesRegion } from "@/lib/email-client";
+import { SendEmailCommand } from "@aws-sdk/client-ses";
 
-const AUTH_EMAIL_FROM = "NoReply <noreply@leetquiz.com>";
-const AUTH_CONFIGURATION_ERROR = "AUTH_CONFIGURATION_ERROR";
+const AUTH_EMAIL_FROM =
+  process.env.AUTH_EMAIL_FROM?.trim() || "NoReply <noreply@leetquiz.com>";
 const AUTH_INTERNAL_ERROR = "AUTH_INTERNAL_ERROR";
 
 type SendEmailOptions = {
@@ -25,51 +26,6 @@ type PasswordResetEmailOptions = {
   to: string;
 };
 
-let sesClient: SESv2Client | null = null;
-
-function getSesRegion(): string {
-  const region =
-    process.env.AWS_REGION?.trim() ?? process.env.AWS_DEFAULT_REGION?.trim();
-
-  if (!region) {
-    throw new Error(
-      `${AUTH_CONFIGURATION_ERROR}: Missing AWS_REGION or AWS_DEFAULT_REGION for SES email delivery.`,
-    );
-  }
-
-  return region;
-}
-
-function getSesCredentials(): {
-  accessKeyId: string;
-  secretAccessKey: string;
-} {
-  const accessKeyId = process.env.AWS_ACCESS_KEY_ID?.trim();
-  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY?.trim();
-
-  if (!accessKeyId || !secretAccessKey) {
-    throw new Error(
-      `${AUTH_CONFIGURATION_ERROR}: Missing AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY for SES email delivery.`,
-    );
-  }
-
-  return {
-    accessKeyId,
-    secretAccessKey,
-  };
-}
-
-function getSesClient(): SESv2Client {
-  if (!sesClient) {
-    sesClient = new SESv2Client({
-      region: getSesRegion(),
-      credentials: getSesCredentials(),
-    });
-  }
-
-  return sesClient;
-}
-
 export async function sendEmail({
   html,
   subject,
@@ -77,37 +33,37 @@ export async function sendEmail({
   to,
 }: SendEmailOptions): Promise<void> {
   try {
-    await getSesClient().send(
+    await sesClient.send(
       new SendEmailCommand({
-        FromEmailAddress: AUTH_EMAIL_FROM,
+        Source: AUTH_EMAIL_FROM,
         Destination: {
           ToAddresses: [to],
         },
-        Content: {
-          Simple: {
-            Subject: {
+        Message: {
+          Subject: {
+            Charset: "UTF-8",
+            Data: subject,
+          },
+          Body: {
+            Html: {
               Charset: "UTF-8",
-              Data: subject,
+              Data: html,
             },
-            Body: {
-              Html: {
-                Charset: "UTF-8",
-                Data: html,
-              },
-              Text: {
-                Charset: "UTF-8",
-                Data: text,
-              },
+            Text: {
+              Charset: "UTF-8",
+              Data: text,
             },
           },
         },
       }),
     );
   } catch (error) {
-    console.error(
-      `${AUTH_INTERNAL_ERROR}: Failed to send email via AWS SES.`,
+    console.error(`${AUTH_INTERNAL_ERROR}: Failed to send email via AWS SES.`, {
+      from: AUTH_EMAIL_FROM,
+      to,
+      region: sesRegion,
       error,
-    );
+    });
     throw error;
   }
 }

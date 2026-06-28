@@ -6,6 +6,7 @@ import {
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
+import { console } from "inspector";
 
 const AUTH_CONFIGURATION_ERROR = "AUTH_CONFIGURATION_ERROR";
 
@@ -79,25 +80,31 @@ export const auth = betterAuth({
     minPasswordLength: 8,
     requireEmailVerification: true,
     revokeSessionsOnPasswordReset: true,
-    sendResetPassword: ({ user, url }) => {
-      void sendAuthPasswordResetEmail({
-        to: user.email,
-        name: user.name ?? null,
-        resetUrl: url,
-      });
-      return Promise.resolve();
+    sendResetPassword: async ({ user, url }) => {
+      try {
+        await sendAuthPasswordResetEmail({
+          to: user.email,
+          name: user.name ?? null,
+          resetUrl: url,
+        });
+      } catch (error) {
+        console.error(
+          `AUTH_EMAIL_SEND_ERROR: Failed to send password reset email to ${user.email}.`,
+          error,
+        );
+      }
     },
   },
   emailVerification: {
     sendOnSignIn: true,
     sendOnSignUp: true,
-    sendVerificationEmail: ({ user, url }) => {
-      void sendAuthVerificationEmail({
+    sendVerificationEmail: async ({ user, url, token }, request) => {
+      console.log("sendVerificationEmail", user, url, token, request);
+      await sendAuthVerificationEmail({
         to: user.email,
         name: user.name ?? null,
         verificationUrl: url,
       });
-      return Promise.resolve();
     },
   },
   ...(googleProvider

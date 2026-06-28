@@ -6,10 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "send-test-email": "node --import tsx --conditions react-server scripts/send-test-email.ts",
+    "send-verification-email": "node --import tsx --conditions react-server scripts/send-verification-email.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-sesv2": "^3.1075.0",
+    "@aws-sdk/client-ses": "^3.1075.0",
     "@better-auth/infra": "^0.3.4",
     "@neondatabase/serverless": "^1.1.0",
     "@prisma/adapter-neon": "^7.8.0",
@@ -29,7 +31,9 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "prisma": "^7.8.0",
+    "server-only": "^0.0.1",
     "tailwindcss": "^4",
+    "tsx": "^4.22.4",
     "typescript": "^5"
   }
 }

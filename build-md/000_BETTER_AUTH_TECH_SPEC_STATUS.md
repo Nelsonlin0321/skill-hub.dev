@@ -26,7 +26,7 @@ This file tracks the implementation of `000_BETTER_AUTH_TECH_SPEC.md` item by it
    Reason: pages use `requireSession()` / `requireUser()`, `/sign-in` redirects authenticated users to `/`, and `app/api/me/route.ts` returns `401` through the shared helper contract.
 
 8. `Pending` Validate the flow manually and add narrowly scoped automated checks if implementation complexity justifies them.
-   Reason: live Google OAuth and SES-backed email validation depend on real `BETTER_AUTH_*`, `GOOGLE_*`, `AWS_*`, and `DATABASE_URL` values plus provider-side configuration. The repo also does not yet include a dedicated automated test harness for auth flows.
+   Reason: live Google OAuth and SES-backed email validation depend on real `BETTER_AUTH_*`, `GOOGLE_*`, `AWS_*`, and `DATABASE_URL` values plus provider-side configuration. Manual end-to-end checks cannot be performed from code alone. The automated portion additionally depends on a test harness that does not yet exist in the repo (no test runner, test script, or test database is configured in `package.json`), so it is blocked on future test-infrastructure work rather than the auth implementation itself.
 
 ## External Dependencies Still Pending
 
@@ -45,7 +45,7 @@ This file tracks the implementation of `000_BETTER_AUTH_TECH_SPEC.md` item by it
   Reason: Better Auth now enables `emailAndPassword`, the UI includes `/sign-in` and `/sign-up` email flows, and sessions still use the shared auth boundary.
 
 - `Completed` AWS SES-backed verification and password-reset email delivery.
-  Reason: verification and reset emails are now sent through AWS SES from `NoReply <noreply@skill-hub.dev>`.
+  Reason: verification and reset emails are now sent through AWS SES from `NoReply <noreply@skill-hub.dev>`. The sender address is read from the `AUTH_EMAIL_FROM` env var (defaulting to `noreply@skill-hub.dev`) so it now matches the address shown to users in the sign-up UI instead of the previously hardcoded mismatched domain.
 
 - `Pending` Manual end-to-end verification of the SES-backed email flow.
   Reason: a live sign-up, inbox delivery check, verification click-through, and subsequent sign-in still need to be confirmed against the provisioned AWS SES environment.
